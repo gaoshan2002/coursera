@@ -30,7 +30,8 @@
  */
 enum MsgTypes{
     JOINREQ,
-    JOINREP,
+    JOINRSP,
+	HEARTBEAT,
     DUMMYLASTMSGTYPE
 };
 
@@ -39,9 +40,41 @@ enum MsgTypes{
  *
  * DESCRIPTION: Header and content of a message
  */
-typedef struct MessageHdr {
+class MessageHdr {
+public:
+	MessageHdr(MsgTypes msgtype)
+	: msgType(msgtype), heartbeat(0)
+	{
+		addr.init();
+	}
 	enum MsgTypes msgType;
-}MessageHdr;
+	Address addr; // sender's addr
+	long heartbeat;
+
+};
+
+class JOINREQMsg : public MessageHdr {
+public:
+	JOINREQMsg()
+	: MessageHdr(JOINREQ)
+	{
+	}
+};
+class HEARTBEATMsg : public MessageHdr {
+public:
+	HEARTBEATMsg()
+	: MessageHdr(HEARTBEAT)
+	{
+	}
+	vector<MemberListEntry> memberList;
+};
+class JOINRSPMsg : public HEARTBEATMsg {
+public:
+	JOINRSPMsg()
+	{
+		msgType = JOINRSP;
+	}
+};
 
 /**
  * CLASS NAME: MP1Node
@@ -76,6 +109,20 @@ public:
 	void initMemberListTable(Member *memberNode);
 	void printAddress(Address *addr);
 	virtual ~MP1Node();
+
+private:
+	int getId();
+	int getPort();
+
+	void removeExpiredMembers();
+	void doGossip();
+
+	MemberListEntry* findMemberEntry(std::vector<MemberListEntry>& lst, int id);
+	void updateMemberList(vector<MemberListEntry>& memberList);
+
+	void onRcvJOINREQ(JOINREQMsg* msg);
+	void onRcvJOINRSP(JOINRSPMsg* msg);
+	void onRcvHEARTBEAT(HEARTBEATMsg* msg);
 };
 
 #endif /* _MP1NODE_H_ */
